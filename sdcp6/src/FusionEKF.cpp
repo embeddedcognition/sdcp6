@@ -103,7 +103,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
         is_initialized_ = true;
         //no need to predict or update so we return
         return;
-	}
+    }
 
     //compute the time elapsed between the current and previous measurements (in seconds)
     float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
