@@ -28,7 +28,8 @@ FusionEKF::FusionEKF()
 	// initializing matrices
 	ekf_.x_ = VectorXd(4);		//state vector (px, py, vx, vy)
 	ekf_.F_ = MatrixXd(4, 4);	//state transition matrix
-	ekf_.v_ = VectorXd(4);		//state transition noise vector (vpx, vpy, vvx, vvy)
+	ekf_.v_ = VectorXd(4);		//state transition noise vector (vpx, vpy, vvx, vvy) --> motion noise
+	ekf_.P_ = MatrixXd(4, 4);	//state covariance matrix
 	ekf_.Q_ = MatrixXd(4, 4);	//process covariance (noise)
 	R_laser_ = MatrixXd(2, 2);  //measurement covariance (noise) for laser
 	R_radar_ = MatrixXd(3, 3);  //measurement covariance (noise) for radar
@@ -47,6 +48,14 @@ FusionEKF::FusionEKF()
 	           0, 1, 0, 5,
 	           0, 0, 1, 0,
 			   0, 0, 0, 1;
+	//set the state covariance matrix
+	ekf_.P_ << 1, 0, 0, 0,
+			   0, 1, 0, 0,
+			   0, 0, 1000, 0,
+			   0, 0, 0, 1000;
+	//set the belief projection matrix for lidar
+	H_laser_ << 1, 0, 0, 0,
+			    0, 1, 0, 0;
 	//set acceleration noise components
 	noise_ax = 9;
 	noise_ay = 9;
@@ -94,40 +103,43 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
 		is_initialized_ = true;
 		//no need to predict or update so we return
 		return;
-  }
+	}
 
-  /*****************************************************************************
-   *  Prediction
-   ****************************************************************************/
+	//compute the time elapsed between the current and previous measurements (in seconds)
+	float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
 
-  /**
-   TODO:
-     * Update the state transition matrix F according to the new elapsed time.
-      - Time is measured in seconds.
-     * Update the process noise covariance matrix.
-     * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
-   */
+	//capture the timestamp of the measurement for future use
+	previous_timestamp_ = measurement_pack.timestamp_;
 
-  ekf_.Predict();
+	//update the state transition matrix according to the new elapsed time
+	ekf_.F_(0, 2) = dt;
+	ekf_.F_(1, 3) = dt;
 
-  /*****************************************************************************
-   *  Update
-   ****************************************************************************/
+	//update the process noise covariance matrix
+	//### REFACTOR THE REDUNDANT OPERATIONS OUT
+	ekf_.Q_ << ((pow(dt, 4) / 4) * noise_ax), 0, ((pow(dt, 3) / 2) * noise_ax), 0,
+			    0, ((pow(dt, 4) / 4) * noise_ay), 0, ((pow(dt, 3) / 2) * noise_ay),
+			    ((pow(dt, 3) / 2) * noise_ax), 0, (pow(dt, 2) * noise_ax), 0,
+			    0, ((pow(dt, 3) / 2) * noise_ay), 0, (pow(dt, 2) * noise_ay);
 
-  /**
-   TODO:
-     * Use the sensor type to perform the update step.
-     * Update the state and covariance matrices.
-   */
 
-  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR)
-  {
-    // Radar updates
-  }
-  else
-  {
-    // Laser updates
-  }
+	//update prediction motion noise vector
+	ekf_.v_ << ((noise_ax * pow(dt, 2)) / 2), ((noise_ay * pow(dt, 2)) / 2), (noise_ax * dt), (noise_ay * dt);
+
+	//perform prediction
+	ekf_.Predict();
+
+	//perform update
+	if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR)
+	{
+		//for radar, use extended kalman filter equations
+		ekf_.UpdateEKF(measurement_pack.raw_measurements_);
+	}
+	else
+	{
+		//for lidar, use normal kalman filter equations
+		ekf_.Update(measurement_pack.raw_measurements_);
+	}
 
   // print the output
   cout << "x_ = " << ekf_.x_ << endl;
