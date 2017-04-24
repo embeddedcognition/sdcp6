@@ -20,45 +20,45 @@ using std::vector;
 //constructor
 FusionEKF::FusionEKF()
 {
-	//bool to invoke initialization on first "ProcessMeasurement" call
-	is_initialized_ = false;
-	//previous measurement timestamp
-	previous_timestamp_ = 0;
+    //bool to invoke initialization on first "ProcessMeasurement" call
+    is_initialized_ = false;
+    //previous measurement timestamp
+    previous_timestamp_ = 0;
 
-	// initializing matrices
-	ekf_.x_ = VectorXd(4);		//state vector (px, py, vx, vy)
-	ekf_.F_ = MatrixXd(4, 4);	//state transition matrix
-	ekf_.v_ = VectorXd(4);		//state transition noise vector (vpx, vpy, vvx, vvy) --> motion noise
-	ekf_.P_ = MatrixXd(4, 4);	//state covariance matrix
-	ekf_.Q_ = MatrixXd(4, 4);	//process covariance (noise)
-	R_laser_ = MatrixXd(2, 2);  //measurement covariance (noise) for laser
-	R_radar_ = MatrixXd(3, 3);  //measurement covariance (noise) for radar
-	H_laser_ = MatrixXd(2, 4);  //belief projection matrix for lidar
-	Hj_ = MatrixXd(3, 4);		//jacobian for radar
+    // initializing matrices
+    ekf_.x_ = VectorXd(4);		//state vector (px, py, vx, vy)
+    ekf_.F_ = MatrixXd(4, 4);	//state transition matrix
+    ekf_.v_ = VectorXd(4);		//state transition noise vector (vpx, vpy, vvx, vvy) --> motion noise
+    ekf_.P_ = MatrixXd(4, 4);	//state covariance matrix
+    ekf_.Q_ = MatrixXd(4, 4);	//process covariance (noise)
+    R_laser_ = MatrixXd(2, 2);  //measurement covariance (noise) for laser
+    R_radar_ = MatrixXd(3, 3);  //measurement covariance (noise) for radar
+    H_laser_ = MatrixXd(2, 4);  //belief projection matrix for lidar
+    Hj_ = MatrixXd(3, 4);		//jacobian for radar
 
-	//set measurement covariance (noise) matrix for laser
-	R_laser_ << 0.0225, 0,
-              	0, 0.0225;
-	//set measurement covariance (noise) matrix for radar
-	R_radar_ << 0.09, 0, 0,
+    //set measurement covariance (noise) matrix for laser
+    R_laser_ << 0.0225, 0,
+                0, 0.0225;
+    //set measurement covariance (noise) matrix for radar
+    R_radar_ << 0.09, 0, 0,
                 0, 0.0009, 0,
                 0, 0, 0.09;
-	//set the state transition matrix (only two locations (those equal to 5) continuously change, so we'll change them per iteration vs. reinitializing the whole matrix each time)
-	ekf_.F_ << 1, 0, 5, 0,
+    //set the state transition matrix (only two locations (those equal to 5) continuously change, so we'll change them per iteration vs. reinitializing the whole matrix each time)
+    ekf_.F_ << 1, 0, 5, 0,
 	           0, 1, 0, 5,
 	           0, 0, 1, 0,
 			   0, 0, 0, 1;
-	//set the state covariance matrix
-	ekf_.P_ << 1, 0, 0, 0,
+    //set the state covariance matrix
+    ekf_.P_ << 1, 0, 0, 0,
 			   0, 1, 0, 0,
 			   0, 0, 1000, 0,
 			   0, 0, 0, 1000;
-	//set the belief projection matrix for lidar
-	H_laser_ << 1, 0, 0, 0,
+    //set the belief projection matrix for lidar
+    H_laser_ << 1, 0, 0, 0,
 			    0, 1, 0, 0;
-	//set acceleration noise components
-	noise_ax = 9;
-	noise_ay = 9;
+    //set acceleration noise components
+    noise_ax = 9;
+    noise_ay = 9;
 }
 
 //destructor
