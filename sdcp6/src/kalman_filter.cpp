@@ -74,5 +74,9 @@ void KalmanFilter::UpdateEKF(const VectorXd& z)
 //map x' from cartesian to polar coordinates
 VectorXd KalmanFilter::h(const VectorXd& x_state)
 {
+    VectorXd h_x(3);
+    h_x << 0, 0, 0;
+
+    return h_x;
 
 }
