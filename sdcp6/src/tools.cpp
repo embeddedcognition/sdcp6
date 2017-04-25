@@ -22,7 +22,7 @@ Tools::~Tools() {}
 VectorXd Tools::CalculateRMSE(const vector<VectorXd>& estimations, const vector<VectorXd>& ground_truth)
 {
     VectorXd rmse(4);
-    rmse << 0,0,0,0;
+    rmse << 0, 0, 0, 0;
 
     //check the validity of the following inputs:
     //* the estimation vector size should not be zero
@@ -34,7 +34,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd>& estimations, const vector<
     }
 
     //accumulate squared residuals
-    for (unsigned int i=0; i < estimations.size(); ++i)
+    for (unsigned int i = 0; i < estimations.size(); ++i)
     {
         VectorXd residual = estimations[i] - ground_truth[i];
 
@@ -55,7 +55,10 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd>& estimations, const vector<
 
 MatrixXd Tools::CalculateJacobian(const VectorXd& x_state)
 {
-    MatrixXd Hj(3,4);
+    MatrixXd Hj(3, 4);
+    Hj << 0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0;
     //recover state parameters
     float px = x_state(0);
     float py = x_state(1);

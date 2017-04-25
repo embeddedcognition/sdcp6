@@ -51,5 +51,28 @@ void KalmanFilter::Update(const VectorXd& z)
 
 void KalmanFilter::UpdateEKF(const VectorXd& z)
 {
+    Tools tools;
+    MatrixXd Hj(3, 4);
+
+    //get the jacobian
+    Hj = tools.CalculateJacobian(x_);
+
+    //compute error
+    VectorXd y = z - h(x_);
+    //compute s
+    MatrixXd S = (Hj * P_ * Hj.transpose()) + R_;
+    //compute kalman gain
+    MatrixXd K = P_ * Hj.transpose() * S.inverse();
+
+    //new estimate
+    x_ = x_ + (K * y);
+    long x_size = x_.size();
+    MatrixXd I = MatrixXd::Identity(x_size, x_size);
+    P_ = (I - K * Hj) * P_;
+}
+
+//map x' from cartesian to polar coordinates
+VectorXd KalmanFilter::h(const VectorXd& x_state)
+{
 
 }

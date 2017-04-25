@@ -64,6 +64,10 @@ class KalmanFilter
         * @param z The measurement at k+1
         */
         void UpdateEKF(const Eigen::VectorXd& z);
+
+    private:
+        //map x' from cartesian coordinates to polar coordinates (extended kalman filter only)
+        Eigen::VectorXd h(const Eigen::VectorXd& x);
 };
 
 #endif /* KALMAN_FILTER_H_ */
