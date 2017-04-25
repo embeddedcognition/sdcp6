@@ -101,6 +101,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
 
         //done initializing
         is_initialized_ = true;
+
         //no need to predict or update so we return
         return;
     }
@@ -132,11 +133,17 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
     //perform update
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR)
     {
+        //get the jacobian
+        Hj_ = tools.CalculateJacobian(ekf_.x_);
+        //init
+        ekf_.Init2(Hj_, R_radar_);
         //for radar, use extended kalman filter equations
         ekf_.UpdateEKF(measurement_pack.raw_measurements_);
     }
     else
     {
+        //init
+        ekf_.Init2(H_laser_, R_laser_);
         //for lidar, use normal kalman filter equations
         ekf_.Update(measurement_pack.raw_measurements_);
     }

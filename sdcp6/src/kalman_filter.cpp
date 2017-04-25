@@ -7,6 +7,7 @@
 */
 
 #include "kalman_filter.h"
+#include <iostream>
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -25,6 +26,12 @@ void KalmanFilter::Init(VectorXd& x_in, MatrixXd& P_in, MatrixXd& F_in, MatrixXd
     H_ = H_in;
     R_ = R_in;
     Q_ = Q_in;
+}
+
+void KalmanFilter::Init2(MatrixXd& H_in, MatrixXd& R_in)
+{
+    H_ = H_in;
+    R_ = R_in;
 }
 
 void KalmanFilter::Predict()
@@ -51,23 +58,27 @@ void KalmanFilter::Update(const VectorXd& z)
 
 void KalmanFilter::UpdateEKF(const VectorXd& z)
 {
-    MatrixXd Hj(3, 4);
-
-    //get the jacobian
-    Hj = tools.CalculateJacobian(x_);
-
     //compute error
     VectorXd y = z - h(x_);
+
+    //std::cout << "x_: " << y << std::endl;
+    //std::cout << "y: " << y << std::endl;
+    //std::cout << "Hj: " << Hj_ << std::endl;
+    //std::cout << "Hj: " << Hj_ << std::endl;
+
     //compute s
-    MatrixXd S = (Hj * P_ * Hj.transpose()) + R_;
+    MatrixXd S = (H_ * P_ * H_.transpose()) + R_;
+
+    //std::cout << "Got this far now now..." << std::endl;
+
     //compute kalman gain
-    MatrixXd K = P_ * Hj.transpose() * S.inverse();
+    MatrixXd K = P_ * H_.transpose() * S.inverse();
 
     //new estimate
     x_ = x_ + (K * y);
     long x_size = x_.size();
     MatrixXd I = MatrixXd::Identity(x_size, x_size);
-    P_ = (I - K * Hj) * P_;
+    P_ = (I - K * H_) * P_;
 }
 
 //map x' from cartesian to polar coordinates

@@ -10,7 +10,6 @@
 #define KALMAN_FILTER_H_
 
 #include "Eigen/Dense"
-#include "tools.h"
 
 class KalmanFilter
 {
@@ -47,6 +46,8 @@ class KalmanFilter
         void Init(Eigen::VectorXd& x_in, Eigen::MatrixXd& P_in, Eigen::MatrixXd& F_in,
                   Eigen::MatrixXd& H_in, Eigen::MatrixXd& R_in, Eigen::MatrixXd& Q_in);
 
+        void Init2(Eigen::MatrixXd& H_in, Eigen::MatrixXd& R_in);
+
        /*
         * Prediction Predicts the state and the state covariance
         * using the process model
@@ -67,8 +68,6 @@ class KalmanFilter
         void UpdateEKF(const Eigen::VectorXd& z);
 
     private:
-        //tool object used to compute Jacobian and RMSE
-        Tools tools;
         //map x' from cartesian coordinates to polar coordinates (extended kalman filter only)
         Eigen::VectorXd h(const Eigen::VectorXd& x);
 };
