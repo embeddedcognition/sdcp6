@@ -10,6 +10,7 @@
 #define KALMAN_FILTER_H_
 
 #include "Eigen/Dense"
+#include "tools.h"
 
 class KalmanFilter
 {
@@ -66,6 +67,8 @@ class KalmanFilter
         void UpdateEKF(const Eigen::VectorXd& z);
 
     private:
+        //tool object used to compute Jacobian and RMSE
+        Tools tools;
         //map x' from cartesian coordinates to polar coordinates (extended kalman filter only)
         Eigen::VectorXd h(const Eigen::VectorXd& x);
 };

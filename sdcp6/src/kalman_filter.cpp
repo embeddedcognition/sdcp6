@@ -51,7 +51,6 @@ void KalmanFilter::Update(const VectorXd& z)
 
 void KalmanFilter::UpdateEKF(const VectorXd& z)
 {
-    Tools tools;
     MatrixXd Hj(3, 4);
 
     //get the jacobian
