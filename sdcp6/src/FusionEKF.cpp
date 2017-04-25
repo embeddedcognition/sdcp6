@@ -26,15 +26,15 @@ FusionEKF::FusionEKF()
     previous_timestamp_ = 0;
 
     // initializing matrices
-    ekf_.x_ = VectorXd(4);		//state vector (px, py, vx, vy)
-    ekf_.F_ = MatrixXd(4, 4);	//state transition matrix
-    ekf_.v_ = VectorXd(4);		//state transition noise vector (vpx, vpy, vvx, vvy) --> motion noise
-    ekf_.P_ = MatrixXd(4, 4);	//state covariance matrix
-    ekf_.Q_ = MatrixXd(4, 4);	//process covariance (noise)
+    ekf_.x_ = VectorXd(4);      //state vector (px, py, vx, vy)
+    ekf_.F_ = MatrixXd(4, 4);   //state transition matrix
+    ekf_.v_ = VectorXd(4);      //state transition noise vector (vpx, vpy, vvx, vvy) --> motion noise
+    ekf_.P_ = MatrixXd(4, 4);   //state covariance matrix
+    ekf_.Q_ = MatrixXd(4, 4);   //process covariance (noise)
     R_laser_ = MatrixXd(2, 2);  //measurement covariance (noise) for laser
     R_radar_ = MatrixXd(3, 3);  //measurement covariance (noise) for radar
     H_laser_ = MatrixXd(2, 4);  //belief projection matrix for lidar
-    Hj_ = MatrixXd(3, 4);		//jacobian for radar
+    Hj_ = MatrixXd(3, 4);       //jacobian for radar
 
     //set measurement covariance (noise) matrix for laser
     R_laser_ << 0.0225, 0,
