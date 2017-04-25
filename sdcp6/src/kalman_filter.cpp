@@ -8,6 +8,7 @@
 
 #include "kalman_filter.h"
 #include <iostream>
+#include <math.h>
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -36,7 +37,8 @@ void KalmanFilter::Init2(MatrixXd& H_in, MatrixXd& R_in)
 
 void KalmanFilter::Predict()
 {
-    x_ = (F_ * x_) + v_;
+    x_ = (F_ * x_);
+    //x_ = (F_ * x_) + v_;
     P_ = F_ * P_ * F_.transpose() + Q_;
 }
 
@@ -61,6 +63,14 @@ void KalmanFilter::UpdateEKF(const VectorXd& z)
     //compute error
     VectorXd y = z - h(x_);
 
+    //std::cout << "y: " << y(1) << std::endl;
+
+    //adjust phi to be between -pi and pi
+    if (fabs(y(1)) > PI)
+    {
+        y(1) -= round(y(1) / (2.0 * PI)) * (2.0 * PI);
+    }
+
     //std::cout << "x_: " << y << std::endl;
     //std::cout << "y: " << y << std::endl;
     //std::cout << "Hj: " << Hj_ << std::endl;
@@ -84,8 +94,19 @@ void KalmanFilter::UpdateEKF(const VectorXd& z)
 //map x' from cartesian to polar coordinates
 VectorXd KalmanFilter::h(const VectorXd& x_state)
 {
+    float px = x_state(0);
+    float py = x_state(1);
+    float vx = x_state(2);
+    float vy = x_state(3);
+    float px_squared = px * px;
+    float py_squared = py * py;
+    float px_py_sqrt = sqrt(px_squared + py_squared);
+
     VectorXd h_x(3);
-    h_x << 0, 0, 0;
+    //compute mapping
+    h_x << px_py_sqrt, atan2(py, px), (((px * vx) + (py * vy)) / px_py_sqrt);
+
+    //std::cout << "h(x): " << h_x(1) << std::endl;
 
     return h_x;
 

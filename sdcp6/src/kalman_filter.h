@@ -70,6 +70,8 @@ class KalmanFilter
     private:
         //map x' from cartesian coordinates to polar coordinates (extended kalman filter only)
         Eigen::VectorXd h(const Eigen::VectorXd& x);
+        const float PI = 3.1415927;
+        //const double PI = 3.141592653589793;
 };
 
 #endif /* KALMAN_FILTER_H_ */

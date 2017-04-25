@@ -64,14 +64,16 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state)
     float py = x_state(1);
     float vx = x_state(2);
     float vy = x_state(3);
+    float px_squared = px * px;
+    float py_squared = py * py;
 
     //check division by zero
     if ((px != 0) && (py != 0))
     {
         //compute the Jacobian matrix
-        Hj << (px / sqrt(pow(px, 2) + pow(py, 2))), (py / sqrt(pow(px, 2) + pow(py, 2))), 0, 0,
-              -(py / (pow(px, 2) + pow(py, 2))), (px / (pow(px, 2) + pow(py, 2))), 0, 0,
-              ((py * ((vx * py) - (vy * px))) / sqrt(pow(pow(px, 2) + pow(py, 2), 3))), ((px * ((vy * px) - (vx * py))) / sqrt(pow(pow(px, 2) + pow(py, 2), 3))), (px / sqrt(pow(px, 2) + pow(py, 2))), (py / sqrt(pow(px, 2) + pow(py, 2)));
+        Hj << (px / sqrt(px_squared + py_squared)), (py / sqrt(px_squared + py_squared)), 0, 0,
+              -(py / (px_squared + py_squared)), (px / (px_squared + py_squared)), 0, 0,
+              ((py * ((vx * py) - (vy * px))) / sqrt(pow(px_squared + py_squared, 3))), ((px * ((vy * px) - (vx * py))) / sqrt(pow(px_squared + py_squared, 3))), (px / sqrt(px_squared + py_squared)), (py / sqrt(px_squared + py_squared));
     }
     else
     {
