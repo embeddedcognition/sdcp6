@@ -103,19 +103,9 @@ VectorXd KalmanFilter::h(const VectorXd& x_state)
     float px_py_sqrt = sqrt(px_squared + py_squared);
 
     VectorXd h_x(3);
-    float phi;
-
-    if (fabs(px) > 0.001)
-    {
-        phi = atan2(py, px);
-    }
-    else
-    {
-        phi = atan2(0.0001, 0.001);
-    }
 
     //compute mapping
-    h_x << px_py_sqrt, phi, (((px * vx) + (py * vy)) / px_py_sqrt);
+    h_x << px_py_sqrt, atan2(py, px), (((px * vx) + (py * vy)) / px_py_sqrt);
 
     //std::cout << "h(x): " << h_x(1) << std::endl;
 
