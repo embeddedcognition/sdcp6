@@ -24,32 +24,25 @@ class FusionEKF
         FusionEKF();
         //destructor
         virtual ~FusionEKF();
-
-       /*
-        * Run the whole flow of the Kalman Filter from here.
-        */
+        //execute the kalman filter on the current sensor measurement
         void ProcessMeasurement(const MeasurementPackage& measurement_pack);
-
-       /*
-        * Kalman Filter update and prediction math lives in here.
-        */
-        KalmanFilter ekf_;
+        //return the current state vector x --> (px, py, vx, vy)
+        Eigen::VectorXd GetState();
 
     private:
+        //object containing kalman filter logic
+        KalmanFilter ekf_;
         //check whether the tracking toolbox was initiallized or not (first measurement)
         bool is_initialized_;
         //previous timestamp
         long long previous_timestamp_;
-
         //tool object used to compute Jacobian and RMSE
         Tools tools;
+        //R and H matrices differ based on sensor type
         Eigen::MatrixXd R_laser_;
         Eigen::MatrixXd R_radar_;
         Eigen::MatrixXd H_laser_;
         Eigen::MatrixXd Hj_;
-        //acceleration noise components
-        float noise_ax;
-        float noise_ay;
 };
 
 #endif /* FusionEKF_H_ */

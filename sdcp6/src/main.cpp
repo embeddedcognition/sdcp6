@@ -157,11 +157,14 @@ int main(int argc, char* argv[])
         //start filtering from the second frame (the speed is unknown in the first frame)
         fusionEKF.ProcessMeasurement(measurement_pack_list[k]);
 
+        //get state vector
+        VectorXd x_state = fusionEKF.GetState();
+
         //output the estimation
-        out_file_ << fusionEKF.ekf_.x_(0) << "\t";
-        out_file_ << fusionEKF.ekf_.x_(1) << "\t";
-        out_file_ << fusionEKF.ekf_.x_(2) << "\t";
-        out_file_ << fusionEKF.ekf_.x_(3) << "\t";
+        out_file_ << x_state(0) << "\t";
+        out_file_ << x_state(1) << "\t";
+        out_file_ << x_state(2) << "\t";
+        out_file_ << x_state(3) << "\t";
 
         //output the measurements
         if (measurement_pack_list[k].sensor_type_ == MeasurementPackage::LASER)
@@ -185,13 +188,13 @@ int main(int argc, char* argv[])
         out_file_ << gt_pack_list[k].gt_values_(2) << "\t";
         out_file_ << gt_pack_list[k].gt_values_(3) << "\n";
 
-        estimations.push_back(fusionEKF.ekf_.x_);
+        estimations.push_back(x_state);
         ground_truth.push_back(gt_pack_list[k].gt_values_);
     }
 
     //compute the accuracy (RMSE)
     Tools tools;
-    cout << "Accuracy - RMSE:" << endl << tools.CalculateRMSE(estimations, ground_truth) << endl;
+    cout << "Accuracy - RMSE:" << endl << tools.ComputeRMSE(estimations, ground_truth) << endl;
 
     //close files
     if (out_file_.is_open())

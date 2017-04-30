@@ -14,20 +14,37 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 //constructor
-KalmanFilter::KalmanFilter() {}
+KalmanFilter::KalmanFilter()
+{
+    // initializing matrices
+    x_ = VectorXd(4);      //state vector (px, py, vx, vy)
+    F_ = MatrixXd(4, 4);   //state transition matrix
+    P_ = MatrixXd(4, 4);   //state covariance matrix
+    Q_ = MatrixXd(4, 4);   //process covariance (noise)
+
+    //set the state transition matrix (only two locations (those equal to 5) continuously change, so we'll change them per iteration vs. reinitializing the whole matrix each time)
+    F_ << 1, 0, 5, 0,
+          0, 1, 0, 5,
+          0, 0, 1, 0,
+          0, 0, 0, 1;
+    //set the state covariance matrix
+    P_ << 1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1000, 0,
+          0, 0, 0, 1000;
+    //set the process covariance matrix (only eight locations (those equal to 5) continuously change, so we'll change them per iteration vs. reinitializing the whole matrix each time)
+    Q_ << 5, 0, 5, 0,
+          0, 5, 0, 5,
+          5, 0, 5, 0,
+          0, 5, 0, 5;
+
+    //set acceleration noise components
+    noise_ax = 9;
+    noise_ay = 9;
+}
 
 //destructor
 KalmanFilter::~KalmanFilter() {}
-
-void KalmanFilter::Init(VectorXd& x_in, MatrixXd& P_in, MatrixXd& F_in, MatrixXd& H_in, MatrixXd& R_in, MatrixXd& Q_in)
-{
-    x_ = x_in;
-    P_ = P_in;
-    F_ = F_in;
-    H_ = H_in;
-    R_ = R_in;
-    Q_ = Q_in;
-}
 
 void KalmanFilter::Init2(MatrixXd& H_in, MatrixXd& R_in)
 {
@@ -35,35 +52,94 @@ void KalmanFilter::Init2(MatrixXd& H_in, MatrixXd& R_in)
     R_ = R_in;
 }
 
+//update the transition state matrix F
+void KalmanFilter::SetTransitionStateMatrix(const float& dt)
+{
+    //update the state transition matrix according to the new elapsed time
+    //only the following matrix locations need to change
+    F_(0, 2) = dt;
+    F_(1, 3) = dt;
+}
+
+//update the process covariance matrix Q
+void KalmanFilter::SetProcessCovarianceMatrix(const float& dt)
+{
+    //update the process covariance matrix according to the new elapsed time
+    //only the following matrix locations need to change
+    Q_(0, 0) = ((pow(dt, 4) / 4) * noise_ax);
+    Q_(0, 2) = ((pow(dt, 3) / 2) * noise_ax);
+    Q_(1, 1) = ((pow(dt, 4) / 4) * noise_ay);
+    Q_(1, 3) = ((pow(dt, 3) / 2) * noise_ay);
+    Q_(2, 0) = ((pow(dt, 3) / 2) * noise_ax);
+    Q_(2, 2) = (pow(dt, 2) * noise_ax);
+    Q_(3, 1) = ((pow(dt, 3) / 2) * noise_ay);
+    Q_(3, 3) = (pow(dt, 2) * noise_ay);
+}
+
+//update the state vector x --> (px, py, vx, vy)
+void KalmanFilter::SetState(const float px, const float py, const float vx, const float vy)
+{
+    x_ << px, py, vx, vy;
+}
+
+//return the current state vector x --> (px, py, vx, vy)
+VectorXd KalmanFilter::GetState()
+{
+    return x_;
+}
+
+//return the current state covariance matrix
+MatrixXd KalmanFilter::GetStateCovariance()
+{
+    return P_;
+}
+
+//perform kalman prediction step
 void KalmanFilter::Predict()
 {
+    //predict state
     x_ = (F_ * x_);
-    //x_ = (F_ * x_) + v_;
+    //predict covariance
     P_ = F_ * P_ * F_.transpose() + Q_;
 }
 
+//perform kalman update step using standard equations (lidar only)
 void KalmanFilter::Update(const VectorXd& z)
 {
-    //compute error
-    VectorXd y = z - (H_ * x_);
-    //compute s
-    MatrixXd S = (H_ * P_ * H_.transpose()) + R_;
-    //compute kalman gain
-    MatrixXd K = P_ * H_.transpose() * S.inverse();
+    //local vars
+    VectorXd y;
+    MatrixXd S;
+    MatrixXd K;
+    long x_size;
+    MatrixXd I;
 
-    //new estimate
+    //compute error --> find the difference between the latest sensor measurement (z) and our prediction x' that has been mapped by the measurement matrix H
+    //(e.g., velocity is dropped and we're only comparing position), as lidar only measures position
+    y = z - (H_ * x_);
+    //compute sensitivity
+    S = (H_ * P_ * H_.transpose()) + R_;
+    //compute kalman gain
+    K = P_ * H_.transpose() * S.inverse();
+
+    //update estimate and uncertainty
     x_ = x_ + (K * y);
-    long x_size = x_.size();
-    MatrixXd I = MatrixXd::Identity(x_size, x_size);
+    x_size = x_.size();
+    I = MatrixXd::Identity(x_size, x_size);
     P_ = (I - K * H_) * P_;
 }
 
+//perform kalman update step using extended equations (radar only)
 void KalmanFilter::UpdateEKF(const VectorXd& z)
 {
-    //compute error
-    VectorXd y = z - h(x_);
+    //local vars
+    VectorXd y;
+    MatrixXd S;
+    MatrixXd K;
+    long x_size;
+    MatrixXd I;
 
-    //std::cout << "y: " << y(1) << std::endl;
+    //compute error --> find the difference between the latest sensor measurement (z) and our prediction x' that has been mapped from cartesian to polar coordinates by function h
+    y = z - h(x_);
 
     //adjust phi to be between -pi and pi
     if (fabs(y(1)) > PI)
@@ -71,44 +147,45 @@ void KalmanFilter::UpdateEKF(const VectorXd& z)
         y(1) -= round(y(1) / (2.0 * PI)) * (2.0 * PI);
     }
 
-    //std::cout << "x_: " << y << std::endl;
-    //std::cout << "y: " << y << std::endl;
-    //std::cout << "Hj: " << Hj_ << std::endl;
-    //std::cout << "Hj: " << Hj_ << std::endl;
-
-    //compute s
-    MatrixXd S = (H_ * P_ * H_.transpose()) + R_;
-
-    //std::cout << "Got this far now now..." << std::endl;
-
+    //compute sensitivity
+    S = (H_ * P_ * H_.transpose()) + R_;
     //compute kalman gain
-    MatrixXd K = P_ * H_.transpose() * S.inverse();
+    K = P_ * H_.transpose() * S.inverse();
 
-    //new estimate
+    //update estimate and uncertainty
     x_ = x_ + (K * y);
-    long x_size = x_.size();
-    MatrixXd I = MatrixXd::Identity(x_size, x_size);
+    x_size = x_.size();
+    I = MatrixXd::Identity(x_size, x_size);
     P_ = (I - K * H_) * P_;
 }
 
-//map x' from cartesian to polar coordinates
+//h(x) function --> map x' from cartesian coordinates to polar coordinates (extended kalman filter only)
 VectorXd KalmanFilter::h(const VectorXd& x_state)
 {
-    float px = x_state(0);
-    float py = x_state(1);
-    float vx = x_state(2);
-    float vy = x_state(3);
-    float px_squared = px * px;
-    float py_squared = py * py;
-    float px_py_sqrt = sqrt(px_squared + py_squared);
+    //local vars
+    float px;
+    float py;
+    float vx;
+    float vy;
+    float px_squared;
+    float py_squared;
+    float sqrt_px_squared_plus_py_squared;
+    VectorXd h_x(3);  //vector containing mapped polar values for comparison against current radar measurement
 
-    VectorXd h_x(3);
+    //recover state parameters
+    px = x_state(0);
+    py = x_state(1);
+    vx = x_state(2);
+    vy = x_state(3);
+
+    //compute multi-use operations
+    px_squared = px * px;
+    py_squared = py * py;
+    sqrt_px_squared_plus_py_squared = sqrt(px_squared + py_squared);
 
     //compute mapping
-    h_x << px_py_sqrt, atan2(py, px), (((px * vx) + (py * vy)) / px_py_sqrt);
+    h_x << sqrt_px_squared_plus_py_squared, atan2(py, px), (((px * vx) + (py * vy)) / sqrt_px_squared_plus_py_squared);
 
-    //std::cout << "h(x): " << h_x(1) << std::endl;
-
+    //return polar matrix
     return h_x;
-
 }

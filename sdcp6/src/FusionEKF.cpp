@@ -26,11 +26,6 @@ FusionEKF::FusionEKF()
     previous_timestamp_ = 0;
 
     // initializing matrices
-    ekf_.x_ = VectorXd(4);      //state vector (px, py, vx, vy)
-    ekf_.F_ = MatrixXd(4, 4);   //state transition matrix
-    ekf_.v_ = VectorXd(4);      //state transition noise vector (vpx, vpy, vvx, vvy) --> motion noise
-    ekf_.P_ = MatrixXd(4, 4);   //state covariance matrix
-    ekf_.Q_ = MatrixXd(4, 4);   //process covariance (noise)
     R_laser_ = MatrixXd(2, 2);  //measurement covariance (noise) for laser
     R_radar_ = MatrixXd(3, 3);  //measurement covariance (noise) for radar
     H_laser_ = MatrixXd(2, 4);  //belief projection matrix for lidar
@@ -43,30 +38,26 @@ FusionEKF::FusionEKF()
     R_radar_ << 0.09, 0, 0,
                 0, 0.0009, 0,
                 0, 0, 0.09;
-    //set the state transition matrix (only two locations (those equal to 5) continuously change, so we'll change them per iteration vs. reinitializing the whole matrix each time)
-    ekf_.F_ << 1, 0, 5, 0,
-               0, 1, 0, 5,
-               0, 0, 1, 0,
-               0, 0, 0, 1;
-    //set the state covariance matrix
-    ekf_.P_ << 1, 0, 0, 0,
-               0, 1, 0, 0,
-               0, 0, 1000, 0,
-               0, 0, 0, 1000;
     //set the belief projection matrix for lidar
     H_laser_ << 1, 0, 0, 0,
                 0, 1, 0, 0;
-    //set acceleration noise components
-    noise_ax = 9;
-    noise_ay = 9;
 }
 
 //destructor
 FusionEKF::~FusionEKF() {}
 
+//return the current state vector x --> (px, py, vx, vy)
+VectorXd FusionEKF::GetState()
+{
+    return ekf_.GetState();
+}
+
 //process the latest measurement received from the sensor
 void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
 {
+    //local vars
+    float dt;
+
     //if this is the first time, we need to initialize x with the current measurement, then exit (filtering will start with the next iteration)
     if (!is_initialized_)
     {
@@ -94,7 +85,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
 
         //init state vector x, which is in cartesian coordinates (px, py, vx, vy)
         //since we'll not have enough information to initialize the velocity portion of the state vector (vx and vy), i.e., we only have the current position to go on, we'll set it to zero
-        ekf_.x_ << px, py, 0, 0;
+        ekf_.SetState(px, py, 0, 0);
 
         //capture the timestamp of the measurement for future use
         previous_timestamp_ = measurement_pack.timestamp_;
@@ -107,39 +98,33 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
     }
 
     //compute the time elapsed between the current and previous measurements (in seconds)
-    float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
+    dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
 
     //capture the timestamp of the measurement for future use
     previous_timestamp_ = measurement_pack.timestamp_;
 
-    //update the state transition matrix according to the new elapsed time
-    ekf_.F_(0, 2) = dt;
-    ekf_.F_(1, 3) = dt;
+    //update the state transition matrix (F) according to the new elapsed time
+    ekf_.SetTransitionStateMatrix(dt);
 
     //update the process noise covariance matrix
-    //### REFACTOR THE REDUNDANT OPERATIONS OUT
-    ekf_.Q_ << ((pow(dt, 4) / 4) * noise_ax), 0, ((pow(dt, 3) / 2) * noise_ax), 0,
-                0, ((pow(dt, 4) / 4) * noise_ay), 0, ((pow(dt, 3) / 2) * noise_ay),
-                ((pow(dt, 3) / 2) * noise_ax), 0, (pow(dt, 2) * noise_ax), 0,
-                0, ((pow(dt, 3) / 2) * noise_ay), 0, (pow(dt, 2) * noise_ay);
+    ekf_.SetProcessCovarianceMatrix(dt);
 
-
-    //update prediction motion noise vector
-    ekf_.v_ << ((noise_ax * pow(dt, 2)) / 2), ((noise_ay * pow(dt, 2)) / 2), (noise_ax * dt), (noise_ay * dt);
-
-    //perform prediction
+    //perform kalman prediction
     ekf_.Predict();
 
-    //perform update
+    //perform kalman update
+    //use extended kalman filter equations for radar
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR)
     {
         //get the jacobian
-        Hj_ = tools.CalculateJacobian(ekf_.x_);
+        VectorXd x_state = ekf_.GetState();
+        Hj_ = tools.ComputeJacobian(x_state);
         //init
         ekf_.Init2(Hj_, R_radar_);
         //for radar, use extended kalman filter equations
         ekf_.UpdateEKF(measurement_pack.raw_measurements_);
     }
+    //use standard kalman filter equations for lidar
     else
     {
         //init
@@ -149,6 +134,6 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
     }
 
     // print the output
-    cout << "x_ = " << ekf_.x_ << endl;
-    cout << "P_ = " << ekf_.P_ << endl;
+    cout << "x_ = " << ekf_.GetState() << endl;
+    cout << "P_ = " << ekf_.GetStateCovariance() << endl;
 }

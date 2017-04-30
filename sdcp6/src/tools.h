@@ -21,10 +21,10 @@ class Tools
         virtual ~Tools();
 
         //compute RMSE
-        Eigen::VectorXd CalculateRMSE(const std::vector<Eigen::VectorXd> &estimations, const std::vector<Eigen::VectorXd> &ground_truth);
+        Eigen::VectorXd ComputeRMSE(const std::vector<Eigen::VectorXd> &estimations, const std::vector<Eigen::VectorXd> &ground_truth);
 
         //compute jacobian
-        Eigen::MatrixXd CalculateJacobian(const Eigen::VectorXd& x_state);
+        Eigen::MatrixXd ComputeJacobian(const Eigen::VectorXd& x_state);
 };
 
 #endif /* TOOLS_H_ */
