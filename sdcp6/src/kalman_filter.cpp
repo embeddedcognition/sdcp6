@@ -22,7 +22,8 @@ KalmanFilter::KalmanFilter()
     P_ = MatrixXd(4, 4);   //state covariance matrix
     Q_ = MatrixXd(4, 4);   //process covariance (noise)
 
-    //set the state transition matrix (only two locations (those equal to 5) continuously change, so we'll change them per iteration vs. reinitializing the whole matrix each time)
+    //set the state transition matrix (only two locations (those equal to 5) continuously change,
+    //so we'll change them per iteration vs. reinitializing the whole matrix each time)
     F_ << 1, 0, 5, 0,
           0, 1, 0, 5,
           0, 0, 1, 0,
@@ -32,7 +33,8 @@ KalmanFilter::KalmanFilter()
           0, 1, 0, 0,
           0, 0, 1000, 0,
           0, 0, 0, 1000;
-    //set the process covariance matrix (only eight locations (those equal to 5) continuously change, so we'll change them per iteration vs. reinitializing the whole matrix each time)
+    //set the process covariance matrix (only eight locations (those equal to 5) continuously change,
+    //so we'll change them per iteration vs. reinitializing the whole matrix each time)
     Q_ << 5, 0, 5, 0,
           0, 5, 0, 5,
           5, 0, 5, 0,

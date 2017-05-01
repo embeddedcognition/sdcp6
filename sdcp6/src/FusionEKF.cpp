@@ -86,7 +86,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
     //use extended kalman filter equations for radar
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR)
     {
-        //get the jacobian
+        //compute the jacobian
         VectorXd x_state = kf_.GetState();
         Hj_ = tools_.ComputeJacobian(x_state);
         //set the appropriate H & R matrices based upon the sensor type
