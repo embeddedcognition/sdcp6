@@ -154,13 +154,8 @@ void KalmanFilter::PerformUpdateEKF(const VectorXd& z)
     //and our prediction x' that has been mapped from cartesian to polar coordinates by function h
     y = z - h(x_);
 
-    //adjust phi to be between -pi and pi
-    //http://stackoverflow.com/questions/11980292/how-to-wrap-around-a-range
-    if (fabs(y(1)) > PI)
-    {
-        double two_pi = 2 * PI;
-        y(1) -= round(y(1) / two_pi) * two_pi;
-    }
+    //adjust phi to be between -pi and pi (if necessary)
+    y(1) = NormalizeAngle(y(1));
 
     //compute sensitivity
     S = (H_ * P_ * H_.transpose()) + R_;
@@ -185,6 +180,7 @@ VectorXd KalmanFilter::h(const VectorXd& x_state)
     float px_squared;
     float py_squared;
     float sqrt_px_squared_plus_py_squared;
+    float phi;
     VectorXd h_x(3);  //vector containing mapped polar values for comparison against current radar measurement
 
     //recover state parameters
@@ -198,9 +194,42 @@ VectorXd KalmanFilter::h(const VectorXd& x_state)
     py_squared = py * py;
     sqrt_px_squared_plus_py_squared = sqrt(px_squared + py_squared);
 
+    //check for divide by zero for rho dot
+    if (sqrt_px_squared_plus_py_squared < 0.0001)
+    {
+        sqrt_px_squared_plus_py_squared = 0.0001;
+    }
+
+    //check for divide by zero for phi
+    if (fabs(px) < 0.0001)
+    {
+        phi = atan2(py, 0.0001);
+    }
+    else
+    {
+        phi = atan2(py, px);
+    }
+
     //compute mapping
-    h_x << sqrt_px_squared_plus_py_squared, atan2(py, px), (((px * vx) + (py * vy)) / sqrt_px_squared_plus_py_squared);
+    h_x << sqrt_px_squared_plus_py_squared, phi, (((px * vx) + (py * vy)) / sqrt_px_squared_plus_py_squared);
 
     //return polar matrix
     return h_x;
+}
+
+//normalize the supplied angle to be within -pi to pi
+double KalmanFilter::NormalizeAngle(const double angle)
+{
+    //local vars
+    double normalized_angle = angle;
+
+    //adjust phi to be between -pi and pi
+    //http://stackoverflow.com/questions/11980292/how-to-wrap-around-a-range
+    if (fabs(angle) > PI)
+    {
+        double two_pi = 2 * PI;
+        normalized_angle -= round(normalized_angle / two_pi) * two_pi;
+    }
+
+    return normalized_angle;
 }

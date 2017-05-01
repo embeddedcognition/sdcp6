@@ -60,6 +60,9 @@ class KalmanFilter
         //h(x) function --> map x' from cartesian coordinates to polar coordinates (extended kalman filter only)
         Eigen::VectorXd h(const Eigen::VectorXd& x);
 
+        //normalize the supplied angle to be within -pi to pi
+        double NormalizeAngle(const double angle);
+
         //state vector
         Eigen::VectorXd x_;
         //state covariance matrix

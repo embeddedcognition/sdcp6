@@ -74,11 +74,6 @@ MatrixXd Tools::ComputeJacobian(const VectorXd& x_state)
     float py_squared;
     float px_squared_plus_py_squared;
 
-    //init Hj (if we catch ourselves dividing by zero, return this version of the matrix)
-    Hj << 0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0;
-
     //recover state parameters
     px = x_state(0);
     py = x_state(1);
@@ -91,7 +86,7 @@ MatrixXd Tools::ComputeJacobian(const VectorXd& x_state)
     px_squared_plus_py_squared = px_squared + py_squared;
 
     //check division by zero
-    if (px_squared_plus_py_squared != 0)
+    if (px_squared_plus_py_squared > 0.0001)
     {
         //compute the Jacobian matrix
         Hj << (px / sqrt(px_squared_plus_py_squared)), (py / sqrt(px_squared_plus_py_squared)), 0, 0,
@@ -101,6 +96,11 @@ MatrixXd Tools::ComputeJacobian(const VectorXd& x_state)
     else
     {
         cout << "Avoiding divide by zero, Jacobian not calculated...zeroed out matrix returned." << endl;
+
+        //init Hj (if we catch ourselves dividing by zero, return this version of the matrix)
+        Hj << 0, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0;
     }
 
     //return matrix
