@@ -19,16 +19,17 @@ class KalmanFilter
         //destructor
         virtual ~KalmanFilter();
 
-        void Init2(Eigen::MatrixXd& H_in, Eigen::MatrixXd& R_in);
+        //set the appropriate H & R matrices based upon the sensor type
+        void SetMeasurementMatrices(Eigen::MatrixXd& H_in, Eigen::MatrixXd& R_in);
 
-        //update the transition state matrix F based on the new elapsed time (delta t)
-        void SetTransitionStateMatrix(const float& dt);
+        //update the state transition matrix F based on the new elapsed time (delta t)
+        void UpdateStateTransitionMatrix(const float& dt);
 
         //update the process covariance matrix Q based on the new elapsed time (delta t)
-        void SetProcessCovarianceMatrix(const float& dt);
+        void UpdateProcessCovarianceMatrix(const float& dt);
 
         //update the state vector x --> (px, py, vx, vy)
-        void SetState(const float px, const float py, const float vx, const float vy);
+        void InitState(const float px, const float py, const float vx, const float vy);
 
         //return the current state vector x --> (px, py, vx, vy)
         Eigen::VectorXd GetState();
@@ -37,25 +38,28 @@ class KalmanFilter
         Eigen::MatrixXd GetStateCovariance();
 
        /*
-        * Prediction Predicts the state and the state covariance
+        * Predicts the state and the state covariance
         * using the process model
         * @param delta_T Time between k and k+1 in s
         */
-        void Predict();
+        void PerformPredict();
 
        /*
         * Updates the state by using standard Kalman Filter equations
         * @param z The measurement at k+1
         */
-        void Update(const Eigen::VectorXd& z);
+        void PerformUpdate(const Eigen::VectorXd& z);
 
        /*
         * Updates the state by using Extended Kalman Filter equations
         * @param z The measurement at k+1
         */
-        void UpdateEKF(const Eigen::VectorXd& z);
+        void PerformUpdateEKF(const Eigen::VectorXd& z);
 
     private:
+        //h(x) function --> map x' from cartesian coordinates to polar coordinates (extended kalman filter only)
+        Eigen::VectorXd h(const Eigen::VectorXd& x);
+
         //state vector
         Eigen::VectorXd x_;
         //state covariance matrix
@@ -69,11 +73,8 @@ class KalmanFilter
         //measurement covariance matrix
         Eigen::MatrixXd R_;
 
-        //h(x) function --> map x' from cartesian coordinates to polar coordinates (extended kalman filter only)
-        Eigen::VectorXd h(const Eigen::VectorXd& x);
-
         //const for PI
-        const float PI = 3.1415927;
+        const double PI = 3.14159265358979;
 
         //acceleration noise components
         float noise_ax;

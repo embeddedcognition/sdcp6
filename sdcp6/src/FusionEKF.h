@@ -30,14 +30,16 @@ class FusionEKF
         Eigen::VectorXd GetState();
 
     private:
+        //function that handles first time init
+        void FirstTimeInit(const MeasurementPackage& measurement_pack);
         //object containing kalman filter logic
-        KalmanFilter ekf_;
+        KalmanFilter kf_;
         //check whether the tracking toolbox was initiallized or not (first measurement)
         bool is_initialized_;
         //previous timestamp
         long long previous_timestamp_;
         //tool object used to compute Jacobian and RMSE
-        Tools tools;
+        Tools tools_;
         //R and H matrices differ based on sensor type
         Eigen::MatrixXd R_laser_;
         Eigen::MatrixXd R_radar_;

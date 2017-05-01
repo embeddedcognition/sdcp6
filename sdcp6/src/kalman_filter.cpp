@@ -46,14 +46,15 @@ KalmanFilter::KalmanFilter()
 //destructor
 KalmanFilter::~KalmanFilter() {}
 
-void KalmanFilter::Init2(MatrixXd& H_in, MatrixXd& R_in)
+//set the appropriate H & R matrices based upon the sensor type
+void KalmanFilter::SetMeasurementMatrices(MatrixXd& H_in, MatrixXd& R_in)
 {
     H_ = H_in;
     R_ = R_in;
 }
 
 //update the transition state matrix F
-void KalmanFilter::SetTransitionStateMatrix(const float& dt)
+void KalmanFilter::UpdateStateTransitionMatrix(const float& dt)
 {
     //update the state transition matrix according to the new elapsed time
     //only the following matrix locations need to change
@@ -62,22 +63,32 @@ void KalmanFilter::SetTransitionStateMatrix(const float& dt)
 }
 
 //update the process covariance matrix Q
-void KalmanFilter::SetProcessCovarianceMatrix(const float& dt)
+void KalmanFilter::UpdateProcessCovarianceMatrix(const float& dt)
 {
+    //local vars
+    float dt_squared;
+    float dt_cubed;
+    float dt_to_the_fourth;
+
+    //compute multi-use operations
+    dt_squared = dt * dt;
+    dt_cubed = dt_squared * dt;
+    dt_to_the_fourth = dt_cubed * dt;
+
     //update the process covariance matrix according to the new elapsed time
     //only the following matrix locations need to change
-    Q_(0, 0) = ((pow(dt, 4) / 4) * noise_ax);
-    Q_(0, 2) = ((pow(dt, 3) / 2) * noise_ax);
-    Q_(1, 1) = ((pow(dt, 4) / 4) * noise_ay);
-    Q_(1, 3) = ((pow(dt, 3) / 2) * noise_ay);
-    Q_(2, 0) = ((pow(dt, 3) / 2) * noise_ax);
-    Q_(2, 2) = (pow(dt, 2) * noise_ax);
-    Q_(3, 1) = ((pow(dt, 3) / 2) * noise_ay);
-    Q_(3, 3) = (pow(dt, 2) * noise_ay);
+    Q_(0, 0) = ((dt_to_the_fourth / 4) * noise_ax);
+    Q_(0, 2) = ((dt_cubed / 2) * noise_ax);
+    Q_(1, 1) = ((dt_to_the_fourth / 4) * noise_ay);
+    Q_(1, 3) = ((dt_cubed / 2) * noise_ay);
+    Q_(2, 0) = ((dt_cubed / 2) * noise_ax);
+    Q_(2, 2) = (dt_squared * noise_ax);
+    Q_(3, 1) = ((dt_cubed / 2) * noise_ay);
+    Q_(3, 3) = (dt_squared * noise_ay);
 }
 
-//update the state vector x --> (px, py, vx, vy)
-void KalmanFilter::SetState(const float px, const float py, const float vx, const float vy)
+//init the state vector x --> (px, py, vx, vy), just on first measurement
+void KalmanFilter::InitState(const float px, const float py, const float vx, const float vy)
 {
     x_ << px, py, vx, vy;
 }
@@ -95,7 +106,7 @@ MatrixXd KalmanFilter::GetStateCovariance()
 }
 
 //perform kalman prediction step
-void KalmanFilter::Predict()
+void KalmanFilter::PerformPredict()
 {
     //predict state
     x_ = (F_ * x_);
@@ -104,7 +115,7 @@ void KalmanFilter::Predict()
 }
 
 //perform kalman update step using standard equations (lidar only)
-void KalmanFilter::Update(const VectorXd& z)
+void KalmanFilter::PerformUpdate(const VectorXd& z)
 {
     //local vars
     VectorXd y;
@@ -113,8 +124,9 @@ void KalmanFilter::Update(const VectorXd& z)
     long x_size;
     MatrixXd I;
 
-    //compute error --> find the difference between the latest sensor measurement (z) and our prediction x' that has been mapped by the measurement matrix H
-    //(e.g., velocity is dropped and we're only comparing position), as lidar only measures position
+    //compute error --> find the difference between the latest sensor measurement (z) and our prediction x'
+    //that has been mapped by the measurement matrix H (e.g., velocity is dropped and we're only comparing position),
+    //as lidar only measures position
     y = z - (H_ * x_);
     //compute sensitivity
     S = (H_ * P_ * H_.transpose()) + R_;
@@ -129,7 +141,7 @@ void KalmanFilter::Update(const VectorXd& z)
 }
 
 //perform kalman update step using extended equations (radar only)
-void KalmanFilter::UpdateEKF(const VectorXd& z)
+void KalmanFilter::PerformUpdateEKF(const VectorXd& z)
 {
     //local vars
     VectorXd y;
@@ -138,13 +150,16 @@ void KalmanFilter::UpdateEKF(const VectorXd& z)
     long x_size;
     MatrixXd I;
 
-    //compute error --> find the difference between the latest sensor measurement (z) and our prediction x' that has been mapped from cartesian to polar coordinates by function h
+    //compute error --> find the difference between the latest sensor measurement (z)
+    //and our prediction x' that has been mapped from cartesian to polar coordinates by function h
     y = z - h(x_);
 
     //adjust phi to be between -pi and pi
+    //http://stackoverflow.com/questions/11980292/how-to-wrap-around-a-range
     if (fabs(y(1)) > PI)
     {
-        y(1) -= round(y(1) / (2.0 * PI)) * (2.0 * PI);
+        double two_pi = 2 * PI;
+        y(1) -= round(y(1) / two_pi) * two_pi;
     }
 
     //compute sensitivity
