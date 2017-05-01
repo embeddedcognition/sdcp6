@@ -58,7 +58,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage& measurement_pack)
     //local vars
     float dt;
 
-    //if this is the first time, we need to initialize x with the current measurement, then exit (filtering will start with the next iteration)
+    //if this is the first time, we need to initialize x with the current measurement,
+    //then exit (filtering will start with the next iteration)
     if (!is_initialized_)
     {
         FirstTimeInit(measurement_pack);
