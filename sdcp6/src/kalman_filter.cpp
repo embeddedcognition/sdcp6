@@ -121,25 +121,14 @@ void KalmanFilter::PerformUpdate(const VectorXd& z)
 {
     //local vars
     VectorXd y;
-    MatrixXd S;
-    MatrixXd K;
-    long x_size;
-    MatrixXd I;
 
     //compute error --> find the difference between the latest sensor measurement (z) and our prediction x'
     //that has been mapped by the measurement matrix H (e.g., velocity is dropped and we're only comparing position),
     //as lidar only measures position
     y = z - (H_ * x_);
-    //compute sensitivity
-    S = (H_ * P_ * H_.transpose()) + R_;
-    //compute kalman gain
-    K = P_ * H_.transpose() * S.inverse();
 
-    //update estimate and uncertainty
-    x_ = x_ + (K * y);
-    x_size = x_.size();
-    I = MatrixXd::Identity(x_size, x_size);
-    P_ = (I - K * H_) * P_;
+    //finish completing update (shared code between standard and EKF)
+    PerformUpdateHelper(y);
 }
 
 //perform kalman update step using extended equations (radar only)
@@ -147,10 +136,6 @@ void KalmanFilter::PerformUpdateEKF(const VectorXd& z)
 {
     //local vars
     VectorXd y;
-    MatrixXd S;
-    MatrixXd K;
-    long x_size;
-    MatrixXd I;
 
     //compute error --> find the difference between the latest sensor measurement (z)
     //and our prediction x' that has been mapped from cartesian to polar coordinates by function h
@@ -158,6 +143,19 @@ void KalmanFilter::PerformUpdateEKF(const VectorXd& z)
 
     //adjust phi to be between -pi and pi (if necessary)
     y(1) = NormalizeAngle(y(1));
+
+    //finish completing update (shared code between standard and EKF)
+    PerformUpdateHelper(y);
+}
+
+//helper function for completing the measurement update (instead of duplicating code in both update functions)
+void KalmanFilter::PerformUpdateHelper(const Eigen::VectorXd& y)
+{
+    //local vars
+    MatrixXd S;
+    MatrixXd K;
+    long x_size;
+    MatrixXd I;
 
     //compute sensitivity
     S = (H_ * P_ * H_.transpose()) + R_;

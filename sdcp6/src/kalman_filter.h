@@ -57,6 +57,9 @@ class KalmanFilter
         void PerformUpdateEKF(const Eigen::VectorXd& z);
 
     private:
+        //helper function for completing the measurement update
+        void PerformUpdateHelper(const Eigen::VectorXd& y);
+
         //h(x) function --> map x' from cartesian coordinates to polar coordinates (extended kalman filter only)
         Eigen::VectorXd h(const Eigen::VectorXd& x);
 
