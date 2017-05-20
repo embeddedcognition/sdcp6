@@ -6,8 +6,8 @@
 ######################################################
 */
 
-#ifndef FusionEKF_H_
-#define FusionEKF_H_
+#ifndef FUSION_EKF_H_
+#define FUSION_EKF_H_
 
 #include "measurement_package.h"
 #include "Eigen/Dense"
@@ -47,4 +47,4 @@ class FusionEKF
         Eigen::MatrixXd Hj_;
 };
 
-#endif /* FusionEKF_H_ */
+#endif /* FUSION_EKF_H_ */
