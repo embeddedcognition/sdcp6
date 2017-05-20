@@ -7,7 +7,6 @@
 */
 
 #include "fusion_ekf.h"
-
 #include <iostream>
 #include <math.h>
 #include "tools.h"
